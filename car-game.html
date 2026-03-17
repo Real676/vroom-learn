@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Vroom & Learn 🚗</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Baloo 2', cursive;
+    user-select: none;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND: sky top 60%, grass bottom 40% ── */
+  #bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 0;
+    /* sky */
+    background: #6ec6ff;
+  }
+  #bg .sky {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 62%;
+    background: linear-gradient(180deg, #4db8ff 0%, #a8deff 100%);
+  }
+  #bg .grass {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 38%;
+    background: linear-gradient(180deg, #6ecf70 0%, #4aab4c 100%);
+  }
+
+  /* Sun */
+  .sun {
+    position: fixed;
+    top: 18px; right: 26px;
+    width: 66px; height: 66px;
+    background: radial-gradient(circle, #fff176 30%, #ffd600 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 0 10px rgba(255,214,0,0.22), 0 0 0 22px rgba(255,214,0,0.10);
+    z-index: 2;
+    animation: sunGlow 3s ease-in-out infinite;
+  }
+  @keyframes sunGlow {
+    0%,100%{ box-shadow: 0 0 0 10px rgba(255,214,0,0.22), 0 0 0 22px rgba(255,214,0,0.10); }
+    50%    { box-shadow: 0 0 0 16px rgba(255,214,0,0.30), 0 0 0 32px rgba(255,214,0,0.13); }
+  }
+
+  /* Clouds */
+  .cloud { position: fixed; z-index: 2; animation: floatCloud linear infinite; }
+  .cloud span { display: block; background: white; border-radius: 999px; position: absolute; }
+  .cloud .a { width: 88px;  height: 42px; top: 14px; left: 0; }
+  .cloud .b { width: 66px;  height: 52px; top: 0;    left: 26px; border-radius: 50%; }
+  .cloud .c { width: 76px;  height: 36px; top: 18px; left: 58px; }
+  .cl1 { top: 7%;  left: -160px; animation-duration: 24s;          opacity: 0.92; }
+  .cl2 { top: 17%; left: -160px; animation-duration: 32s; animation-delay: -15s; opacity: 0.72; transform: scale(0.72); }
+  @keyframes floatCloud { to { transform: translateX(calc(100vw + 200px)); } }
+
+  /* Road */
+  .road {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 68px;
+    background: #546e7a;
+    z-index: 3;
+  }
+  .road::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 5px;
+    background: #455a64;
+  }
+  .road::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0; height: 7px;
+    background: repeating-linear-gradient(90deg, #FFD600 0 52px, transparent 52px 104px);
+    transform: translateY(-50%);
+    animation: roadStripe 0.55s linear infinite;
+  }
+  @keyframes roadStripe { to { background-position: -104px 0; } }
+
+  /* ── MAIN LAYOUT ── */
+  #app {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 12px 84px;
+    gap: 10px;
+  }
+
+  /* Sound toggle */
+  #soundBtn {
+    position: fixed;
+    top: 12px; left: 14px;
+    background: white;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: clamp(18px, 4.5vw, 24px);
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.13);
+    z-index: 30;
+    line-height: 1;
+    transition: transform 0.1s;
+  }
+  #soundBtn:active { transform: scale(0.88); }
+
+  #title {
+    font-size: clamp(26px, 7vw, 44px);
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.15), 0 5px 14px rgba(0,0,0,0.12);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  #scoreBadge {
+    background: white;
+    border-radius: 999px;
+    padding: 6px 20px;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: 800;
+    color: #333;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Mode tabs */
+  #tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .tab {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(14px, 3.8vw, 19px);
+    font-weight: 800;
+    padding: 9px 15px;
+    border: none; border-radius: 999px;
+    background: rgba(255,255,255,0.75);
+    color: #555; cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.10);
+    transition: transform 0.1s, background 0.15s;
+  }
+  .tab:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.10); }
+  .tab.on.c-colors  { background: #ff7043; color: white; box-shadow: 0 4px 0 #bf360c; }
+  .tab.on.c-numbers { background: #42a5f5; color: white; box-shadow: 0 4px 0 #1565c0; }
+  .tab.on.c-letters { background: #66bb6a; color: white; box-shadow: 0 4px 0 #2e7d32; }
+  .tab.on.c-shapes  { background: #ab47bc; color: white; box-shadow: 0 4px 0 #6a1b9a; }
+
+  /* Difficulty bar */
+  #diffBar {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.82);
+    border-radius: 999px;
+    padding: 7px 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+  }
+  #diffBar label { font-size: clamp(13px,3.2vw,17px); font-weight: 800; color: #555; white-space: nowrap; }
+  .diffBtn {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(12px, 3.2vw, 16px); font-weight: 800;
+    padding: 6px 14px; border: none; border-radius: 999px;
+    background: transparent; color: #888; cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .diffBtn:active { transform: scale(0.92); }
+  .diffBtn.on { background: #37474f; color: white; box-shadow: 0 3px 0 #1a1a1a; }
+
+  /* Question card */
+  #qCard {
+    background: white;
+    border-radius: 26px;
+    padding: 12px 26px;
+    text-align: center;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+    width: min(96vw, 480px);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  #qCard.speaking {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 6px rgba(66,165,245,0.3), 0 6px 22px rgba(0,0,0,0.12);
+  }
+  #qCard .hint {
+    font-size: clamp(12px, 3.2vw, 16px); font-weight: 700;
+    color: #bbb; text-transform: uppercase; letter-spacing: 2px;
+  }
+  #qCard .qText {
+    font-size: clamp(32px, 10.5vw, 60px); font-weight: 900;
+    color: #222; line-height: 1.1;
+  }
+
+  /* Answer grid */
+  #grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: min(96vw, 480px);
+  }
+  .card {
+    background: white; border-radius: 22px;
+    padding: 14px 8px 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.10);
+    transition: transform 0.12s, box-shadow 0.12s;
+    min-height: 125px;
+    border: 4px solid transparent;
+  }
+  .card:active { transform: scale(0.93) translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.10); }
+  .card.correct { background: #e8f5e9; border-color: #4caf50; }
+  .card.wrong   { background: #ffebee; border-color: #f44336; }
+  .car-svg { width: min(37vw, 136px); height: auto; display: block; }
+  .cardLabel {
+    font-size: clamp(19px, 5.5vw, 29px); font-weight: 900;
+    color: #222; margin-top: 6px; text-align: center; line-height: 1.1;
+  }
+
+  /* Feedback flash */
+  #flash {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50; opacity: 0; pointer-events: none;
+    transition: opacity 0.22s;
+  }
+  #flash.show { opacity: 1; pointer-events: all; }
+  #flash .bigEmoji { font-size: clamp(80px,24vw,136px); animation: popIn 0.32s cubic-bezier(.36,2,.6,1) both; }
+  #flash .flashMsg {
+    font-size: clamp(28px,8.5vw,56px); font-weight: 900;
+    color: white; text-shadow: 0 3px 12px rgba(0,0,0,0.25); margin-top: 8px;
+  }
+  @keyframes popIn { from{transform:scale(0)} to{transform:scale(1)} }
+
+  /* Confetti */
+  .confetti {
+    position: fixed; font-size: 28px;
+    pointer-events: none; z-index: 60;
+    animation: confettiFly 1s ease-out forwards;
+  }
+  @keyframes confettiFly {
+    0%  { opacity:1; transform: translate(0,0) rotate(0deg) scale(1); }
+    100%{ opacity:0; transform: var(--tx) rotate(var(--rot)) scale(0.2); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div id="bg"><div class="sky"></div><div class="grass"></div></div>
+<div class="sun"></div>
+<div class="cloud cl1"><span class="a"></span><span class="b"></span><span class="c"></span></div>
+<div class="cloud cl2"><span class="a"></span><span class="b"></span><span class="c"></span></div>
+<div class="road"></div>
+
+<button id="soundBtn" onclick="toggleSound()" title="Toggle sound">🔊</button>
+
+<div id="app">
+  <div id="title">🚗 Vroom &amp; Learn!</div>
+
+  <div id="scoreBadge">⭐ <span id="scoreNum">0</span></div>
+
+  <div id="tabs">
+    <button class="tab on c-colors"  id="t-colors"  onclick="setMode('colors')">🎨 Colors</button>
+    <button class="tab c-numbers" id="t-numbers" onclick="setMode('numbers')">🔢 Numbers</button>
+    <button class="tab c-letters" id="t-letters" onclick="setMode('letters')">🔤 Letters</button>
+    <button class="tab c-shapes"  id="t-shapes"  onclick="setMode('shapes')">🔷 Shapes</button>
+  </div>
+
+  <div id="diffBar">
+    <label>🎯 Level:</label>
+    <button class="diffBtn on" id="d-easy"   onclick="setDiff('easy')">🟢 Easy</button>
+    <button class="diffBtn"    id="d-medium" onclick="setDiff('medium')">🟡 Medium</button>
+    <button class="diffBtn"    id="d-hard"   onclick="setDiff('hard')">🔴 Hard</button>
+  </div>
+
+  <div id="qCard">
+    <div class="hint">Tap the right car! 🚗</div>
+    <div class="qText" id="qText">...</div>
+  </div>
+
+  <div id="grid"></div>
+</div>
+
+<div id="flash">
+  <div class="bigEmoji" id="flashEmoji">🎉</div>
+  <div class="flashMsg" id="flashMsg">Great!</div>
+</div>
+
+<script>
+// ── DATA ──
+const DATA = {
+  colors: [
+    { label:'RED',    color:'#ef5350' },
+    { label:'BLUE',   color:'#42a5f5' },
+    { label:'GREEN',  color:'#66bb6a' },
+    { label:'YELLOW', color:'#ffee58' },
+    { label:'ORANGE', color:'#ffa726' },
+    { label:'PURPLE', color:'#ab47bc' },
+    { label:'PINK',   color:'#f06292' },
+    { label:'WHITE',  color:'#eeeeee' },
+  ],
+  numbers: ['1','2','3','4','5','6','7','8','9','10'].map(n=>({label:n})),
+  letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l=>({label:l})),
+  shapes: [
+    { label:'CIRCLE',   sym:'⬤' },
+    { label:'SQUARE',   sym:'■' },
+    { label:'TRIANGLE', sym:'▲' },
+    { label:'STAR',     sym:'★' },
+    { label:'HEART',    sym:'♥' },
+    { label:'DIAMOND',  sym:'◆' },
+  ],
+};
+const PALETTE = [
+  { body:'#ef5350', shade:'#b71c1c' },
+  { body:'#42a5f5', shade:'#1565c0' },
+  { body:'#66bb6a', shade:'#2e7d32' },
+  { body:'#ffa726', shade:'#e65100' },
+  { body:'#ab47bc', shade:'#6a1b9a' },
+  { body:'#f06292', shade:'#880e4f' },
+  { body:'#26c6da', shade:'#006064' },
+  { body:'#ffee58', shade:'#f9a825' },
+];
+const SHADE_MAP = {
+  '#ef5350':'#b71c1c','#42a5f5':'#1565c0','#66bb6a':'#2e7d32',
+  '#ffee58':'#f9a825','#ffa726':'#e65100','#ab47bc':'#6a1b9a',
+  '#f06292':'#880e4f','#eeeeee':'#9e9e9e',
+};
+const DIFF_CONFIG = {
+  easy:   { choices: 2, numMax: 5,  letMax: 10, shapeMax: 3 },
+  medium: { choices: 3, numMax: 10, letMax: 16, shapeMax: 5 },
+  hard:   { choices: 4, numMax: 10, letMax: 26, shapeMax: 6 },
+};
+
+// ── STATE ──
+let mode = 'colors', difficulty = 'easy', correct = null, score = 0, locked = false;
+let soundOn = true;
+let audioCtx = null;
+let speakTimer = null;
+
+// ── SOUND: Web Audio ──
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playCheer() {
+  if (!soundOn) return;
+  try {
+    const ctx = getCtx();
+    [523,659,784,1047].forEach((f,i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine';
+      const t = ctx.currentTime + i*0.13;
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.25, t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.32);
+      o.start(t); o.stop(t+0.35);
+    });
+  } catch(e){}
+}
+
+function playWrong() {
+  if (!soundOn) return;
+  try {
+    const ctx = getCtx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(220, ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(150, ctx.currentTime+0.22);
+    g.gain.setValueAtTime(0.18, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.26);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.28);
+  } catch(e){}
+}
+
+// ── SOUND: Speech — fire-and-forget, never blocks game ──
+function speak(text) {
+  if (!soundOn || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.85; u.pitch = 1.2; u.volume = 1;
+    const voices = window.speechSynthesis.getVoices();
+    const v = voices.find(v => /samantha|karen|moira|zira|tessa|female/i.test(v.name))
+           || voices.find(v => v.lang && v.lang.startsWith('en'));
+    if (v) u.voice = v;
+    // No onend — never block game flow on speech events
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+function speakQuestion() {
+  if (!correct) return;
+  const phrases = {
+    colors:  `Tap the ${correct.label} car!`,
+    numbers: `Find number ${correct.label}!`,
+    letters: `Tap the letter ${correct.label}!`,
+    shapes:  `Find the ${correct.label}!`,
+  };
+  // Pulse card visually
+  const qc = document.getElementById('qCard');
+  qc.classList.add('speaking');
+  setTimeout(()=> qc.classList.remove('speaking'), 600);
+  speak(phrases[mode]);
+}
+
+function speakAnswer(label, isOk) {
+  const praise = ['Great job!','Well done!','Amazing!','You got it!','Superstar!'];
+  const retry  = ['Try again!','Almost!','Oops, try once more!'];
+  const suffix = isOk ? praise[Math.floor(Math.random()*praise.length)] : retry[Math.floor(Math.random()*retry.length)];
+  speak(isOk ? `${label}! ${suffix}` : suffix);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) speakQuestion();
+  else if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+// Preload voices
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  if (window.speechSynthesis.onvoiceschanged !== undefined)
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// ── CAR SVG ──
+function makeCar(bodyColor, shadeColor, svgLabel, labelType) {
+  let inner = '';
+  if (labelType === 'number' || labelType === 'letter') {
+    inner = `<text x="60" y="43" text-anchor="middle" dominant-baseline="middle"
+      font-family="Baloo 2,cursive" font-size="21" font-weight="900"
+      fill="white" stroke="${shadeColor}" stroke-width="2.5" paint-order="stroke">${svgLabel}</text>`;
+  } else if (labelType === 'shape') {
+    inner = `<text x="60" y="43" text-anchor="middle" dominant-baseline="middle"
+      font-size="18" fill="white">${svgLabel}</text>`;
+  }
+  return `<svg viewBox="0 0 120 64" xmlns="http://www.w3.org/2000/svg" class="car-svg">
+    <rect x="6" y="28" width="108" height="28" rx="10" fill="${bodyColor}"/>
+    <rect x="20" y="12" width="68" height="24" rx="8" fill="${shadeColor}"/>
+    <rect x="23" y="15" width="28" height="16" rx="4" fill="#cceeff" opacity="0.9"/>
+    <rect x="55" y="15" width="28" height="16" rx="4" fill="#cceeff" opacity="0.9"/>
+    ${inner}
+    <rect x="2"   y="40" width="16" height="9" rx="4" fill="${shadeColor}"/>
+    <rect x="102" y="40" width="16" height="9" rx="4" fill="${shadeColor}"/>
+    <circle cx="110" cy="36" r="4" fill="#fff9c4" opacity="0.9"/>
+    <circle cx="28" cy="56" r="10" fill="#37474f"/>
+    <circle cx="28" cy="56" r="5"  fill="#b0bec5"/>
+    <circle cx="92" cy="56" r="10" fill="#37474f"/>
+    <circle cx="92" cy="56" r="5"  fill="#b0bec5"/>
+  </svg>`;
+}
+
+// ── HELPERS ──
+function shuffle(a) { return [...a].sort(()=>Math.random()-.5); }
+function pick(a,n)  { return shuffle(a).slice(0,n); }
+
+function getPool() {
+  const c = DIFF_CONFIG[difficulty];
+  if (mode==='colors')  return DATA.colors;
+  if (mode==='numbers') return DATA.numbers.slice(0, c.numMax);
+  if (mode==='letters') return DATA.letters.slice(0, c.letMax);
+  if (mode==='shapes')  return DATA.shapes.slice(0,  c.shapeMax);
+}
+
+// ── GAME FLOW ──
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('t-'+m).classList.add('on','c-'+m);
+  nextQ();
+}
+
+function setDiff(d) {
+  difficulty = d;
+  document.querySelectorAll('.diffBtn').forEach(b => b.classList.remove('on'));
+  document.getElementById('d-'+d).classList.add('on');
+  nextQ();
+}
+
+function nextQ() {
+  // Always unlock immediately — speech/timers must NEVER block this
+  locked = false;
+  if (speakTimer) { clearTimeout(speakTimer); speakTimer = null; }
+
+  const cfg = DIFF_CONFIG[difficulty];
+  const chosen = pick(getPool(), cfg.choices);
+  correct = chosen[Math.floor(Math.random()*chosen.length)];
+
+  const grid = document.getElementById('grid');
+  grid.style.gridTemplateColumns = cfg.choices === 3 ? '1fr 1fr 1fr' : '1fr 1fr';
+
+  document.getElementById('qText').textContent =
+    mode === 'shapes' ? correct.sym + '  ' + correct.label : correct.label;
+
+  grid.innerHTML = '';
+  chosen.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    let bodyColor, shadeColor, svgLabel, labelType, cardLabelText;
+    if (mode === 'colors') {
+      bodyColor = item.color; shadeColor = SHADE_MAP[item.color]||'#555';
+      labelType = 'color'; svgLabel = ''; cardLabelText = item.label;
+    } else {
+      const p = PALETTE[i % PALETTE.length];
+      bodyColor = p.body; shadeColor = p.shade;
+      if (mode==='numbers') { labelType='number'; svgLabel=item.label; cardLabelText=item.label; }
+      else if (mode==='letters') { labelType='letter'; svgLabel=item.label; cardLabelText=item.label; }
+      else { labelType='shape'; svgLabel=item.sym; cardLabelText=item.sym+' '+item.label; }
+    }
+
+    card.innerHTML = makeCar(bodyColor, shadeColor, svgLabel, labelType);
+    const lbl = document.createElement('div');
+    lbl.className = 'cardLabel';
+    lbl.textContent = cardLabelText;
+    card.appendChild(lbl);
+    card.addEventListener('click', () => onTap(item.label===correct.label, card, item.label));
+    grid.appendChild(card);
+  });
+
+  // Speak question after brief UI settle — but never block nextQ
+  speakTimer = setTimeout(speakQuestion, 350);
+}
+
+const OK  = ['Great job!','Woohoo!','You got it!','Amazing!','So smart!','Yay!','Awesome!'];
+const BAD = ['Try again!','Oops! Try once more!','Almost! Try again!'];
+
+function onTap(isOk, card, tappedLabel) {
+  if (locked) return;
+  locked = true;
+
+  // Speak answer immediately — fire and forget
+  speakAnswer(tappedLabel, isOk);
+
+  if (isOk) {
+    score++;
+    document.getElementById('scoreNum').textContent = score;
+    card.classList.add('correct');
+    playCheer();
+    showFlash(true, OK[Math.floor(Math.random()*OK.length)]);
+    burst();
+    // Always advance after fixed timeout — no dependency on speech events
+    setTimeout(() => { hideFlash(); nextQ(); }, 1400);
+  } else {
+    card.classList.add('wrong');
+    playWrong();
+    showFlash(false, BAD[Math.floor(Math.random()*BAD.length)]);
+    setTimeout(() => {
+      hideFlash();
+      card.classList.remove('wrong');
+      locked = false;
+    }, 1100);
+  }
+}
+
+function showFlash(ok, msg) {
+  const fl = document.getElementById('flash');
+  document.getElementById('flashEmoji').textContent =
+    ok ? ['🎉','⭐','🏆','🚗','🎊','🌈'][Math.floor(Math.random()*6)] : '💨';
+  document.getElementById('flashMsg').textContent = msg;
+  fl.style.background = ok ? 'rgba(76,175,80,0.75)' : 'rgba(244,67,54,0.60)';
+  fl.classList.add('show');
+}
+function hideFlash() { document.getElementById('flash').classList.remove('show'); }
+
+function burst() {
+  const items = ['⭐','🌟','✨','🎉','💛','🎈','🏅','🚗'];
+  for (let i = 0; i < 10; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.textContent = items[Math.floor(Math.random()*items.length)];
+    const x = 10+Math.random()*80, y = 10+Math.random()*70;
+    const dx = (Math.random()-.5)*340, dy = (Math.random()-.5)*340;
+    const rot = (Math.random()-.5)*360+'deg';
+    el.style.cssText = `left:${x}vw;top:${y}vh;--tx:translate(${dx}px,${dy}px);--rot:${rot};animation-delay:${i*0.04}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1100);
+  }
+}
+
+// ── START ──
+nextQ();
+</script>
+</body>
+</html>
